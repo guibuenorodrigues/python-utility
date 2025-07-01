@@ -10,7 +10,7 @@ logger = logging.getLogger()
 def retry(
     backoff: int = 1,
     retries: int = 3,
-    delay: int = 2,
+    delay: int = 5,
     exceptions: Tuple = (Exception,),
     disable_logs: bool = False,
 ) -> Callable:
@@ -46,6 +46,7 @@ def retry(
             current_exception = None
 
             for attempt in range(retries):
+                starting_time = time.perf_counter()
                 try:
                     return func(*args, **kwargs)
                 except exceptions as e:
@@ -56,6 +57,13 @@ def retry(
 
                     time.sleep(current_delay)
                     current_delay *= backoff
+
+                end_time = time.perf_counter()
+
+                if not disable_logs:
+                    logger.info(
+                        f"attempt {attempt + 1} took {end_time - starting_time}"
+                    )
 
             raise Exception(
                 f"function {func.__name__} failed after {retries} retries. Exc: {str(current_exception)}"
